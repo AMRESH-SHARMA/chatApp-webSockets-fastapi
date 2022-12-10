@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import TokenExpired from "./Auth"
+// import TokenExpired from "./Auth"
 import jwt_decode from "jwt-decode";
 
 const Home = () => {
   const navigate = useNavigate()
-  const [name, setName] = useState('default');
+  const [name, setName] = useState('Token is not valid');
   const [msg, setMsg] = useState('');
   const [messages, setMessages] = useState([]);
   const [wsConnected, setWsConnected] = useState(false);
@@ -83,7 +83,7 @@ const Home = () => {
         </>
         :
         <div>
-          <h1>Welcome {name}</h1>
+          <h1>{name}</h1>
           <p> WebSocket Connection is <b>{wsConnected ? 'ONLINE' : 'OFFLINE'}</b></p>
           <div style={{ marginTop: "25px" }}>
             <form>

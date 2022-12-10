@@ -51,6 +51,7 @@ const Register = () => {
         />
       </div>
       <button type="submit" onClick={handleRegister} style={{margin:"25px",width:"80px"}}>Sign Up</button>
+      <button type="submit" onClick={()=>navigate('/')} style={{margin:"25px",width:"80px"}}>Log In</button>
     </div>
   </>
   );

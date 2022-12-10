@@ -15,3 +15,7 @@ class UserSchema(BaseModel):
                 "token": "xyzzz"
             }
         }
+
+
+class Token(BaseModel):
+    token: str

@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Body
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi_jwt_auth import AuthJWT
+
 from ..models.userModel import (
     UserSchema,
+    Token
 )
 from ..controllers.userController import (
     c_RegisterUser,
     c_LoginUser,
+    c_GoogleLogin
 )
 
 
@@ -32,3 +35,12 @@ async def login(user: UserSchema = Body(...), Authorize: AuthJWT = Depends()):
     if res:
         return res
 
+
+# Google Login
+
+
+@router.post("/auth/")
+async def authentication(token: Token, Authorize: AuthJWT = Depends()):
+    res = await c_GoogleLogin(token, Authorize)
+    if res:
+        return res

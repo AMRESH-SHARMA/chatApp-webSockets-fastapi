@@ -1,12 +1,15 @@
 from fastapi import FastAPI
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, WebSocket, Request, Request
+from fastapi import FastAPI, WebSocket, Request
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from pydantic import BaseModel
+
+# from google.oauth2 import id_token
+# from google.auth.transport import requests
 
 from .routes.userRoute import router as UserRouter
 
@@ -71,12 +74,14 @@ class SocketManager:
 
 manager = SocketManager()
 
-senders=[]
+senders = []
+
+
 @app.websocket("/ws/{client_name}")
 async def chat(websocket: WebSocket, client_name: str):
     sender = client_name
     await manager.connect(websocket, sender)
-    # await manager.broadcast(F"{sender} got connected ")   
+    # await manager.broadcast(F"{sender} got connected ")
     try:
         while True:
             data = await websocket.receive_text()
@@ -85,3 +90,19 @@ async def chat(websocket: WebSocket, client_name: str):
     except WebSocketDisconnect:
         manager.disconnect(websocket, sender)
         await manager.broadcast(f"Client #{sender} left the chat")
+
+# Google auth
+
+
+# @app.get("/auth")
+# def authentication(request: Request, token: str):
+    # try:
+    #     # Specify the CLIENT_ID of the app that accesses the backend:
+    #     user = id_token.verify_oauth2_token(token, requests.Request(
+    #     ), "914599604729-2b4cnghp7bqijv6lb35eqj4pg8lu46s0.apps.googleusercontent.com")
+
+    #     msgresp = user['name'] + ' Authorized successfully'
+    #     return JSONResponse(content={'SUCCESS': True, 'MSG': msgresp, 'DATA': 'user_helper(res)'})
+
+    # except ValueError:
+    #     return JSONResponse(content={'SUCCESS': False, 'MSG': 'unauthorized'})
