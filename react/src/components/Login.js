@@ -51,6 +51,7 @@ const Login = () => {
         />
       </div>
       <button type="submit" onClick={handleLogin} style={{margin:"25px",width:"80px"}}>Sign In</button>
+      <button type="button" onClick={()=>navigate('/register')} style={{margin:"25px",width:"80px"}}>Register</button>
     </div>
   </>
   );
