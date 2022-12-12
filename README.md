@@ -7,8 +7,9 @@ npm run start
 ```
 
 #APP(backend)
+FastAPI, Async SocketIO, Googleauth, JWT
 ```
-install dependencies from requirement.txt
+install dependencies
 cd/app
 python main.py
 ```
