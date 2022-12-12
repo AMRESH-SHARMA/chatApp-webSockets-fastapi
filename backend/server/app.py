@@ -1,29 +1,21 @@
 from fastapi import FastAPI
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, WebSocket, Request
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, Request
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from pydantic import BaseModel
-
-# from google.oauth2 import id_token
-# from google.auth.transport import requests
+import socketio
 
 from .routes.userRoute import router as UserRouter
 
 app = FastAPI()
 
-origins = [
-    "http://localhost:3000",
-    "localhost:3000"
-]
-
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
@@ -56,53 +48,45 @@ async def read_root():
 app.include_router(UserRouter, prefix="/api")
 
 
-class SocketManager:
-    def __init__(self):
-        self.active_connections: List[(WebSocket, str)] = []
+sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=[])
+app = socketio.ASGIApp(sio, app)
 
-    async def connect(self, websocket: WebSocket, user: str):
-        await websocket.accept()
-        self.active_connections.append((websocket, user))
-
-    def disconnect(self, websocket: WebSocket, user: str):
-        self.active_connections.remove((websocket, user))
-
-    async def broadcast(self, data: dict):
-        for connection in self.active_connections:
-            await connection[0].send_text(data)
+allUsers = []
 
 
-manager = SocketManager()
-
-senders = []
-
-
-@app.websocket("/ws/{client_name}")
-async def chat(websocket: WebSocket, client_name: str):
-    sender = client_name
-    await manager.connect(websocket, sender)
-    # await manager.broadcast(F"{sender} got connected ")
-    try:
-        while True:
-            data = await websocket.receive_text()
-            await manager.broadcast(f"Client# {sender} Says: {data}")
-            print(data)
-    except WebSocketDisconnect:
-        manager.disconnect(websocket, sender)
-        await manager.broadcast(f"Client #{sender} left the chat")
-
-# Google auth
+@sio.event
+async def connect(sid, data, environ):
+    allUsers.append(sid)
+    print(sid, 'connected from react')
 
 
-# @app.get("/auth")
-# def authentication(request: Request, token: str):
-    # try:
-    #     # Specify the CLIENT_ID of the app that accesses the backend:
-    #     user = id_token.verify_oauth2_token(token, requests.Request(
-    #     ), "914599604729-2b4cnghp7bqijv6lb35eqj4pg8lu46s0.apps.googleusercontent.com")
+@sio.event
+async def constatus(sid, data):
+    print(sid, data)
+    for user_sid in allUsers:
+      if user_sid !=sid:
+        await sio.emit('chatfrmServer', data + '# get connected', room=user_sid)
 
-    #     msgresp = user['name'] + ' Authorized successfully'
-    #     return JSONResponse(content={'SUCCESS': True, 'MSG': msgresp, 'DATA': 'user_helper(res)'})
 
-    # except ValueError:
-    #     return JSONResponse(content={'SUCCESS': False, 'MSG': 'unauthorized'})
+@sio.event
+async def disconstatus(sid, data):
+    print(sid, data)
+    await sio.emit('chatfrmServer', data + '# get disconnected')
+
+
+# CHATS
+@sio.event
+async def chats(sid, data):
+    print(sid, data)
+    await sio.emit('chatfrmServer', data)
+
+# @sio.event
+# async def ping(sid,data):
+#     print(sid,data)
+#     await sio.emit('pong','PONG!! RESPONSE FROM SERVER')
+
+
+@sio.event
+async def disconnect(sid):
+    allUsers.remove(sid)
+    print(sid, 'disconnected from react')

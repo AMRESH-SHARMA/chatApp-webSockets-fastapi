@@ -46,7 +46,7 @@ const Login = () => {
     }
     catch (err) {
       console.warn(err);
-      alert(err.response.data.MSG)
+      alert(err)
     }
   }
 
@@ -78,7 +78,7 @@ const Login = () => {
     <hr />
     <div style={{ margin: "25px" }}>
 
-
+    <h1 style={{ margin: "25px" }}>Login with Google</h1>
       <div style={{ width: '15rem' }}>
         <GoogleOAuthProvider
           clientId="914599604729-2b4cnghp7bqijv6lb35eqj4pg8lu46s0.apps.googleusercontent.com">

@@ -2,68 +2,64 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 // import TokenExpired from "./Auth"
 import jwt_decode from "jwt-decode";
+import { io } from "socket.io-client";
 
 const Home = () => {
   const navigate = useNavigate()
-  const [name, setName] = useState('Token is not valid');
-  const [msg, setMsg] = useState('');
+  var socket = io('http://localhost:8000', { transports: ["websocket", "polling"] });
+
+  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [name, setName] = useState('');
+  // const [pongRes, setPongRes] = useState('');
   const [messages, setMessages] = useState([]);
-  const [wsConnected, setWsConnected] = useState(false);
 
 
-  var ws = new WebSocket(`ws://localhost:8000/ws/${name}`);
+
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem('token')) {
-        const { sub } = jwt_decode(sessionStorage.getItem('token'));
-        setName(sub)
-        ws = new WebSocket(`ws://localhost:8000/ws/${sub}`);
-        ws.onopen = () => {
-          setWsConnected(true)
-        };
 
-        ws.onmessage = (message) => {
-          console.log(message);
-          setMessages((messages) => [...messages, message]);
-        }
+    if (sessionStorage.getItem('token')) {
+      var { sub } = jwt_decode(sessionStorage.getItem('token'));
+      setName(sub)
 
-      }
+      socket.on('connect', () => {
+        console.log('Connection STATUS', socket.connected);
+        setIsConnected(socket.connected)
+        socket.emit('constatus', `${sub}`);
+      });
 
-    } catch (err) {
-      setWsConnected(false)
+      socket.on('chatfrmServer', (data) => {
+        console.log(data);
+        setMessages((messages) => [...messages, data]);
+      })
+
+      socket.on('disconnect', () => {
+        console.log('Disconnection STATUS', socket.connected);
+        setIsConnected(socket.connected)
+        socket.emit('disconstatus', `${name}`);
+      });
+
     }
+
   }, []);
 
-  const isOpen = (ws) => { return ws.readyState === ws.OPEN }
+
+  // const sendPing = () => {
+  //   socket.emit('ping', "RESPONSE FROM REACT");
+  //   console.log('SEND RESPONSE TO SERVER');
+  // }
+
 
   const sendMessage = (e) => {
     e.preventDefault()
-
     try {
-      if (!isOpen(ws)) {
-        alert('wait and retry')
-        return;
-      }
-      console.log(msg);
-      msg.trim().toString()
-      ws.send(msg);
-      console.log('cv', messages)
-      // ws.onerror = (error) => {
-      //   console.warn(error);
-      // };
+      console.log(e.target.inptxt.value);
+      const payload = e.target.inptxt.value
+      payload.trim().toString()
+      socket.emit('chats', `${name} says: ${payload}`);
     } catch (err) {
       console.log(err);
     }
-  }
 
-
-  if (!sessionStorage.getItem('token')) {
-    return (
-      <>
-        <h1>Please login before access this page</h1>
-        <button type="submit" onClick={() => navigate('/')} style={{ margin: "25px", width: "80px" }}>Login Page</button>
-      </>
-    )
   }
   // if (TokenExpired(sessionStorage.getItem('token'))) {
   //   return (
@@ -84,28 +80,37 @@ const Home = () => {
         :
         <div>
           <h1>{name}</h1>
-          <p> WebSocket Connection is <b>{wsConnected ? 'ONLINE' : 'OFFLINE'}</b></p>
-          <div style={{ marginTop: "25px" }}>
-            <form>
-              <input
-                type="text"
-                onChange={(e) => setMsg(e.target.value)} />
-              <button onClick={(e) => sendMessage(e)}>Send</button>
+          <div>
+            <p> WebSocket Connection is <b>{isConnected ? 'ONLINE' : 'OFFLINE'}</b></p>
+            {/* <button onClick={sendPing}>Send ping</button>
+            <p>{pongRes}</p> */}
+          </div>
 
-              <button
-                onClick={() => {
-                  sessionStorage.removeItem('token');
-                  navigate(0)
-                }}
-                style={{ marginLeft: "25px" }}>Log out</button>
+
+          <div style={{ marginTop: "25px" }}>
+            <form onSubmit={sendMessage}>
+              <input
+                id="inptxt"
+                name="inptxt"
+                type="text"
+              />
+              <button type="submit">Send</button>
             </form>
+            <br />
+            <button
+              onClick={() => {
+                sessionStorage.removeItem('token');
+                navigate(0)
+              }}
+              style={{ marginLeft: "25px" }}>Log out</button>
+
             <hr />
             {messages.reverse() && messages.map((val, i) => {
               return (
                 <div key={i}>
                   <br />
                   <p>
-                    <b>{val.data}</b>
+                    <b>{val}</b>
                   </p>
                 </div>
               );
