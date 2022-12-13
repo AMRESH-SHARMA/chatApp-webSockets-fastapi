@@ -1,0 +1,15 @@
+.input-feedback{
+  color:red;
+  font-weight: 500;
+}
+.gbtn1{
+  background-color: #002147;
+  margin: 10px 0px;
+  color: #ffffff;
+  padding: 12px 25px;
+  border-radius: 0px;
+  width: 100%;
+  font-family: "Roboto-Bold", Arial, Helvetica, sans-serif;
+  font-size: 15px;
+  cursor: pointer;
+}

@@ -1,9 +1,12 @@
-import motor.motor_asyncio
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-MONGO_DETAILS = "mongodb://localhost:27017"
+SQLALCHEMY_DATABASE_URL = "mysql+mysqlconnector://root:""@localhost:3306/readyAcc"
 
-client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-database = client.ChatApp_WebSockets
-
-userCollection = database.get_collection("userCollection")
+Base = declarative_base()

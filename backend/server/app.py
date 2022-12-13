@@ -1,15 +1,11 @@
-from fastapi import FastAPI
-from typing import List
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, Request, Request
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-from fastapi_jwt_auth import AuthJWT
-from fastapi_jwt_auth.exceptions import AuthJWTException
-from pydantic import BaseModel
-import socketio
+from typing import List
+from sqlalchemy.orm import Session
+from fastapi import Depends, FastAPI, HTTPException
+from . import models, schemas, crud
+from .database import engine, SessionLocal
 
-from .routes.userRoute import router as UserRouter
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -21,72 +17,26 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-
-class Settings(BaseModel):
-    authjwt_secret_key: str = "secret"
-    # authjwt_access_token_expires: int = 1
+# Dependency
 
 
-@AuthJWT.load_config
-def get_config():
-    return Settings()
+def get_db():
+    db = None
+    try:
+        db = SessionLocal()
+        yield db
+    finally:
+        db.close()
 
 
-@app.exception_handler(AuthJWTException)
-def authjwt_exception_handler(request: Request, exc: AuthJWTException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.message}
-    )
-
-
-@app.get("/", tags=["Root"])
-async def read_root():
-    return {"message": 'settings'}
-
-
-app.include_router(UserRouter, prefix="/api")
-
-
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=[])
-app = socketio.ASGIApp(sio, app)
-
-allUsers = []
-
-
-@sio.event
-async def connect(sid, data, environ):
-    allUsers.append(sid)
-    print(sid, 'connected from react')
-
-
-@sio.event
-async def constatus(sid, data):
-    print(sid, data)
-    for user_sid in allUsers:
-      if user_sid !=sid:
-        await sio.emit('chatfrmServer', data + '# get connected', room=user_sid)
-
-
-@sio.event
-async def disconstatus(sid, data):
-    print(sid, data)
-    await sio.emit('chatfrmServer', data + '# get disconnected')
-
-
-# CHATS
-@sio.event
-async def chats(sid, data):
-    print(sid, data)
-    await sio.emit('chatfrmServer', data)
-
-# @sio.event
-# async def ping(sid,data):
-#     print(sid,data)
-#     await sio.emit('pong','PONG!! RESPONSE FROM SERVER')
-
-
-@sio.event
-async def disconnect(sid):
-    allUsers.remove(sid)
-    print(sid, 'disconnected from react')
+@app.post("/user", response_model=schemas.UserInfo)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user_by_email = crud.get_user_by_email(db, email=user.email)
+    db_user_by_phone = crud.get_user_by_phone(db, phone=user.phone)
+    if db_user_by_email:
+        raise HTTPException(
+            status_code=400, detail="Email already registered")
+    if db_user_by_phone:
+        raise HTTPException(
+            status_code=400, detail="Phone already registered")
+    return crud.create_user(db=db, user=user)
