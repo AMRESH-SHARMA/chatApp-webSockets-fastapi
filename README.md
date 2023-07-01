@@ -1,4 +1,4 @@
-# ChatApp_WebSockets-FastAP
+# ChatApp_WebSockets-FastAPI
 
 #React
 ```
